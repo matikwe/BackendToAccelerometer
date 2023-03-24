@@ -28,7 +28,7 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public User addNewUser(User user) {
+    public int addNewUser(User user) {
         Optional<User> userByLogin = userRepository.findUserByLogin(user.getLogin());
         if (userByLogin.isPresent()) {
             throw new IllegalStateException("login: " + user.getLogin() + " exists!");
@@ -41,16 +41,17 @@ public class UserService {
         user.setSalt(generateSalt(user));
         user.setPassword(generateSecurePassword(user.getPassword(), user.getSalt()));
         userRepository.save(user);
-        return user;
+        return Math.toIntExact(user.getId());
     }
 
-    public User verifyLoginDetails(String login, String password) {
+    public int verifyLoginDetails(String login, String password) {
         Optional<User> getUserByLogin = userRepository.findUserByLogin(login);
         if (getUserByLogin.isPresent()) {
-            return userRepository.checkLoginAndPassword(login, generateSecurePassword(password, getUserByLogin.get().getSalt()))
+            Optional<User> getUserByCheckLoginAndPassword = Optional.ofNullable(userRepository.checkLoginAndPassword(login, generateSecurePassword(password, getUserByLogin.get().getSalt()))
                     .orElseThrow(() -> new IllegalStateException(
                             "Login or password is incorrect."
-                    ));
+                    )));
+            return Math.toIntExact(getUserByCheckLoginAndPassword.get().getId());
         } else {
             throw new IllegalStateException("Login is incorrect.");
         }
@@ -58,7 +59,6 @@ public class UserService {
 
     private String generateSecurePassword(String password, Long salt_id) {
         Optional<Salt> salt = saltRepository.checkExistSalt(salt_id);
-        System.out.println("salt: " + salt.get().getSalt());
         return salt.map(value -> PasswordUtils.generateSecurePassword(password, value.getSalt())).orElse(null);
     }
 

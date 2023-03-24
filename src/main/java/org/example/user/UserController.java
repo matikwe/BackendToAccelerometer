@@ -23,13 +23,13 @@ public class UserController {
     }
 
     @PostMapping(path = "register")
-    public User registerNewUser(
+    public int registerNewUser(
             @RequestBody User user) {
         return userService.addNewUser(user);
     }
 
     @PostMapping(path = "login")
-    public User verifyLoginDetails(
+    public int verifyLoginDetails(
             @RequestBody User user) {
         return userService.verifyLoginDetails(user.getLogin(), user.getPassword());
     }
