@@ -15,4 +15,7 @@ public interface UserRepository
 
     @Query("SELECT u FROM Users u WHERE u.login = ?1 and u.password = ?2")
     Optional<User> checkLoginAndPassword(String login, String password);
+
+    @Query("SELECT u FROM Users u WHERE u.id = ?1")
+    User getUserById(Long id);
 }

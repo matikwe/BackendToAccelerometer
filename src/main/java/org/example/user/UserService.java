@@ -5,10 +5,9 @@ import org.example.salt.SaltRepository;
 import org.example.utils.PasswordUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,6 +15,9 @@ import java.util.regex.Pattern;
 public class UserService {
     private final UserRepository userRepository;
     private final SaltRepository saltRepository;
+    private final static String ID = "id";
+    private final static String TOTAL_JUMPS = "totalJumps";
+    private final static String ZERO = "0";
 
     @Autowired
     public UserService(UserRepository userRepository, SaltRepository saltRepository) {
@@ -28,7 +30,7 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public int addNewUser(User user) {
+    public Map<String, String> addNewUser(User user) {
         Optional<User> userByLogin = userRepository.findUserByLogin(user.getLogin());
         if (userByLogin.isPresent()) {
             throw new IllegalStateException("login: " + user.getLogin() + " exists!");
@@ -41,19 +43,38 @@ public class UserService {
         user.setSalt(generateSalt(user));
         user.setPassword(generateSecurePassword(user.getPassword(), user.getSalt()));
         userRepository.save(user);
-        return Math.toIntExact(user.getId());
+        Map<String, String> details = new HashMap<>();
+        Long totalJumps = user.getTotalJumps();
+        details.put(ID, user.getId().toString());
+        details.put(TOTAL_JUMPS, totalJumps > 0 ? totalJumps.toString() : ZERO);
+        return details;
     }
 
-    public int verifyLoginDetails(String login, String password) {
+    public Map<String, String> verifyLoginDetails(String login, String password) {
         Optional<User> getUserByLogin = userRepository.findUserByLogin(login);
         if (getUserByLogin.isPresent()) {
             Optional<User> getUserByCheckLoginAndPassword = Optional.ofNullable(userRepository.checkLoginAndPassword(login, generateSecurePassword(password, getUserByLogin.get().getSalt()))
                     .orElseThrow(() -> new IllegalStateException(
                             "Login or password is incorrect."
                     )));
-            return Math.toIntExact(getUserByCheckLoginAndPassword.get().getId());
+            Map<String, String> details = new HashMap<>();
+            if (getUserByCheckLoginAndPassword.isPresent()) {
+                Long totalJumps = getUserByCheckLoginAndPassword.get().getTotalJumps();
+                details.put(ID, getUserByCheckLoginAndPassword.get().getId().toString());
+                details.put(TOTAL_JUMPS, totalJumps > 0 ? totalJumps.toString() : ZERO);
+            }
+
+            return details;
         } else {
             throw new IllegalStateException("Login is incorrect.");
+        }
+    }
+
+    @Transactional
+    public void editTotalJumps(Long userId, Long totalJumps) {
+        User user = userRepository.getUserById(userId);
+        if (!Objects.equals(totalJumps, user.getTotalJumps())) {
+            user.setTotalJumps(totalJumps);
         }
     }
 

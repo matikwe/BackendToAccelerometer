@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin
@@ -23,14 +24,21 @@ public class UserController {
     }
 
     @PostMapping(path = "register")
-    public int registerNewUser(
+    public Map<String, String> registerNewUser(
             @RequestBody User user) {
         return userService.addNewUser(user);
     }
 
     @PostMapping(path = "login")
-    public int verifyLoginDetails(
+    public Map<String, String> verifyLoginDetails(
             @RequestBody User user) {
         return userService.verifyLoginDetails(user.getLogin(), user.getPassword());
+    }
+
+    @PutMapping(path = "editTotalJumps/{userId}")
+    public void editTotalJumps(
+            @PathVariable("userId") Long userId,
+            @RequestParam Long totalJumps){
+        userService.editTotalJumps(userId,totalJumps);
     }
 }

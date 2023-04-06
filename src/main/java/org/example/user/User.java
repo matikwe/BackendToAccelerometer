@@ -23,9 +23,11 @@ public class User {
     private Long id;
     private String login;
     private String password;
+    private Long totalJumps;
     @OneToOne()
     @JoinColumn(name = "salt_id")
     private Salt salt;
+
 
     public User() {
     }
@@ -40,6 +42,16 @@ public class User {
     public User(String login, String password) {
         this.login = login;
         this.password = password;
+    }
+
+    public User(Long totalJumps) {
+        this.totalJumps = totalJumps;
+    }
+
+    public User(String login, String password, Long totalJumps) {
+        this.login = login;
+        this.password = password;
+        this.totalJumps = totalJumps;
     }
 
     public Long getSalt() {
@@ -72,5 +84,13 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Long getTotalJumps() {
+        return totalJumps;
+    }
+
+    public void setTotalJumps(Long totalJumps) {
+        this.totalJumps = totalJumps;
     }
 }
