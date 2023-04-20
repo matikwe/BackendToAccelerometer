@@ -1,5 +1,6 @@
 package org.example.user;
 
+import org.example.jump.JumpRepository;
 import org.example.salt.Salt;
 import org.example.salt.SaltRepository;
 import org.example.utils.PasswordUtils;
@@ -7,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,14 +18,17 @@ import java.util.regex.Pattern;
 public class UserService {
     private final UserRepository userRepository;
     private final SaltRepository saltRepository;
+    private final JumpRepository jumpRepository;
     private final static String ID = "id";
     private final static String TOTAL_JUMPS = "totalJumps";
     private final static String ZERO = "0";
+    private final static String YESTERDAY_MISSING_JUMPS = "yesterdayMissingJumps";
 
     @Autowired
-    public UserService(UserRepository userRepository, SaltRepository saltRepository) {
+    public UserService(UserRepository userRepository, SaltRepository saltRepository, JumpRepository jumpRepository) {
         this.userRepository = userRepository;
         this.saltRepository = saltRepository;
+        this.jumpRepository = jumpRepository;
     }
 
 
@@ -47,6 +53,7 @@ public class UserService {
         Long totalJumps = user.getTotalJumps();
         details.put(ID, user.getId().toString());
         details.put(TOTAL_JUMPS, totalJumps > 0 ? totalJumps.toString() : ZERO);
+        details.put(YESTERDAY_MISSING_JUMPS, ZERO);
         return details;
     }
 
@@ -59,9 +66,13 @@ public class UserService {
                     )));
             Map<String, String> details = new HashMap<>();
             if (getUserByCheckLoginAndPassword.isPresent()) {
-                Long totalJumps = getUserByCheckLoginAndPassword.get().getTotalJumps();
+                Long dailyTotalJumps = getUserByCheckLoginAndPassword.get().getTotalJumps();
+                String yesterdayMissingJumpsString = jumpRepository.findJumpByUserIdAndCurrentDate(getUserByLogin.get().getId(), getYesterdayDate());
+                long totalJumps = (dailyTotalJumps > 0 ? dailyTotalJumps : 0);
+                long yesterdayMissingJumps = totalJumps - (yesterdayMissingJumpsString != null ? Long.parseLong(yesterdayMissingJumpsString) : 0);
                 details.put(ID, getUserByCheckLoginAndPassword.get().getId().toString());
-                details.put(TOTAL_JUMPS, totalJumps > 0 ? totalJumps.toString() : ZERO);
+                details.put(TOTAL_JUMPS, String.valueOf(totalJumps));
+                details.put(YESTERDAY_MISSING_JUMPS, String.valueOf(yesterdayMissingJumps));
             }
 
             return details;
@@ -130,5 +141,16 @@ public class UserService {
         messageList.add("The password must contain a special character. ");
         messageList.add("The password must contain between 8 and 20 characters. ");
         return messageList;
+    }
+
+    private String getYesterdayDate() {
+        DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+        return dateFormat.format(yesterday());
+    }
+
+    private Date yesterday() {
+        final Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1);
+        return cal.getTime();
     }
 }
